@@ -1,0 +1,755 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Fantasy Football Sportsbook</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#eefbff',
+              100: '#d5f5ff',
+              400: '#38bdf8',
+              500: '#0284c7',
+              600: '#0369a1',
+              accent: '#10b981',
+              accentHover: '#059669',
+              gold: '#f59e0b',
+              darkBg: '#0f172a',
+              cardBg: '#1e293b',
+              cardBorder: '#334155'
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+    body {
+      font-family: 'Inter', sans-serif;
+    }
+    .custom-scrollbar::-webkit-scrollbar {
+      width: 6px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-track {
+      background: #0f172a;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+      background: #334155;
+      border-radius: 9999px;
+    }
+    .odds-btn.active {
+      background-color: #0284c7 !important;
+      border-color: #38bdf8 !important;
+      color: #ffffff !important;
+      box-shadow: 0 4px 12px rgba(2, 132, 199, 0.4);
+    }
+    .odds-btn.active .odds-val, .odds-btn.active .odds-line {
+      color: #ffffff !important;
+    }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col pb-24 lg:pb-0 custom-scrollbar">
+
+  <!-- Header -->
+  <header class="bg-slate-900/90 backdrop-blur border-b border-slate-800 sticky top-0 z-30">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      <div class="flex items-center space-x-3">
+        <div class="bg-gradient-to-r from-blue-600 to-emerald-500 p-2 rounded-lg text-white font-black text-xl tracking-wider flex items-center shadow-lg shadow-blue-500/20">
+          <i class="fa-solid font-bold fa-football-ball mr-2"></i> LEAGUE BOOK
+        </div>
+        <span class="hidden md:inline-block bg-slate-800 text-xs px-2.5 py-1 rounded-full text-slate-400 font-semibold uppercase tracking-wider border border-slate-700">Week 2 Matchups</span>
+      </div>
+      
+      <!-- Navigation Tabs & Bet Slip Button -->
+      <div class="flex items-center space-x-2 sm:space-x-4">
+        <div class="bg-slate-950 p-1 rounded-xl border border-slate-800 flex items-center space-x-1">
+          <button id="navSportsbookBtn" onclick="switchMainView('sportsbook')" class="px-3 py-1.5 rounded-lg text-xs font-bold transition-all bg-blue-600 text-white flex items-center gap-1.5 shadow">
+            <i class="fa-solid fa-trophy"></i>
+            <span>Sportsbook</span>
+          </button>
+          <button id="navMyBetsBtn" onclick="switchMainView('mybets')" class="px-3 py-1.5 rounded-lg text-xs font-bold transition-all text-slate-400 hover:text-white flex items-center gap-1.5">
+            <i class="fa-solid fa-list-check"></i>
+            <span>My Bets</span>
+            <span id="activeBetsBadge" class="bg-emerald-500 text-slate-950 text-[10px] font-black px-1.5 py-0.2 rounded-full hidden">0</span>
+          </button>
+        </div>
+
+        <button id="openBetSlipBtn" onclick="toggleBetSlip(true)" class="relative bg-emerald-600 hover:bg-emerald-500 text-white font-semibold px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg transition-all flex items-center space-x-1.5 shadow-lg shadow-emerald-900/30 text-xs sm:text-sm">
+          <i class="fa-solid fa-receipt"></i>
+          <span class="hidden sm:inline">Bet Slip</span>
+          <span id="betCountBadge" class="bg-white text-emerald-900 font-extrabold text-xs px-1.5 py-0.5 rounded-full ml-1 hidden">0</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex-grow w-full">
+    
+    <!-- League Banner -->
+    <div class="bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 rounded-2xl p-6 mb-6 border border-slate-800 shadow-xl relative overflow-hidden">
+      <div class="absolute -right-10 -bottom-10 opacity-10 text-9xl text-white pointer-events-none">
+        <i class="fa-solid fa-football-ball"></i>
+      </div>
+      <div class="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <span class="text-emerald-400 text-xs font-extrabold tracking-widest uppercase bg-emerald-950/80 px-3 py-1 rounded-full border border-emerald-800/50">Official League Odds</span>
+          <h1 class="text-2xl sm:text-3xl font-black text-white mt-2 tracking-tight">Fantasy Football Sportsbook</h1>
+          <p class="text-slate-400 text-sm mt-1">Select odds to build wagers and track all your placed bets permanently under "My Bets".</p>
+        </div>
+        <div class="flex items-center space-x-3 bg-slate-950/60 p-3.5 rounded-xl border border-slate-800 text-xs text-slate-300 shrink-0">
+          <div class="text-emerald-400 text-2xl"><i class="fa-solid fa-wallet"></i></div>
+          <div>
+            <p class="font-bold text-slate-400">Current Bankroll</p>
+            <p id="userBankrollDisplay" class="text-emerald-400 font-black text-lg">$20.00</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="sportsbookView" class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      
+      <!-- Matchups Container -->
+      <div class="lg:col-span-2 space-y-4" id="matchupsContainer"></div>
+
+      <!-- Desktop Bet Slip Sidebar -->
+      <div class="hidden lg:block lg:col-span-1">
+        <div class="sticky top-20 bg-slate-900 rounded-2xl border border-slate-800 p-5 shadow-2xl">
+          <div class="flex items-center justify-between pb-4 border-b border-slate-800">
+            <h2 class="text-lg font-bold flex items-center space-x-2 text-white">
+              <i class="fa-solid fa-receipt text-emerald-400"></i>
+              <span>Bet Slip</span>
+            </h2>
+            <button onclick="clearBetSlip()" class="text-xs text-slate-400 hover:text-red-400 transition-colors flex items-center gap-1">
+              <i class="fa-solid fa-trash-can"></i>
+              <span>Clear Slip</span>
+            </button>
+          </div>
+
+          <div id="betSlipListDesktop" class="py-4 space-y-3 max-h-[380px] overflow-y-auto custom-scrollbar"></div>
+
+          <div id="betSlipSummaryDesktop" class="border-t border-slate-800 pt-4 space-y-3">
+            <div class="flex justify-between items-center text-sm">
+              <span class="text-slate-400">Bet Type</span>
+              <span id="betTypeLabelDesktop" class="font-bold text-slate-200">Single</span>
+            </div>
+            <div class="flex justify-between items-center text-sm">
+              <span class="text-slate-400">Total Odds</span>
+              <span id="totalOddsDesktop" class="font-bold text-emerald-400">+0</span>
+            </div>
+            
+            <div class="space-y-1">
+              <label class="text-xs text-slate-400 font-semibold uppercase">Wager Amount ($)</label>
+              <div class="relative">
+                <span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-bold">$</span>
+                <input type="number" id="wagerInputDesktop" value="5" min="1" oninput="onWagerChange('desktop')" class="w-full bg-slate-950 border border-slate-700 rounded-lg py-2.5 pl-8 pr-3 text-white font-bold focus:outline-none focus:border-blue-500">
+              </div>
+            </div>
+
+            <div class="bg-slate-950 p-3.5 rounded-xl border border-slate-800 flex justify-between items-center">
+              <div>
+                <p class="text-xs text-slate-400">Potential Payout</p>
+                <p id="potentialPayoutDesktop" class="text-xl font-black text-emerald-400">$0.00</p>
+              </div>
+              <div class="text-right">
+                <p class="text-xs text-slate-400">Est. Profit</p>
+                <p id="potentialProfitDesktop" class="text-sm font-bold text-slate-200">$0.00</p>
+              </div>
+            </div>
+
+            <button onclick="placeBet()" class="w-full bg-emerald-600 hover:bg-emerald-500 active:scale-[0.99] text-white font-extrabold py-3 rounded-xl transition-all shadow-lg shadow-emerald-900/40 uppercase tracking-wider text-sm flex items-center justify-center space-x-2">
+              <i class="fa-solid fa-paper-plane"></i>
+              <span>Place Bet</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <div id="myBetsView" class="hidden space-y-6">
+      <div class="flex items-center justify-between bg-slate-900 p-4 rounded-xl border border-slate-800">
+        <div class="flex items-center space-x-3">
+          <div class="bg-blue-600/20 text-blue-400 p-3 rounded-xl border border-blue-500/30">
+            <i class="fa-solid fa-list-check text-xl"></i>
+          </div>
+          <div>
+            <h2 class="text-xl font-bold text-white">My Placed Bets</h2>
+            <p class="text-xs text-slate-400">All wagers placed are permanently stored in your browser session.</p>
+          </div>
+        </div>
+      </div>
+
+      <div id="placedBetsContainer" class="space-y-4"></div>
+    </div>
+
+  </main>
+
+  <div id="mobileBetSlipDrawer" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 transition-opacity opacity-0 pointer-events-none lg:hidden">
+    <div class="fixed inset-y-0 right-0 max-w-full flex pl-10">
+      <div class="w-screen max-w-md bg-slate-900 border-l border-slate-800 shadow-2xl flex flex-col justify-between p-5">
+        <div>
+          <div class="flex items-center justify-between pb-4 border-b border-slate-800">
+            <h2 class="text-lg font-bold flex items-center space-x-2 text-white">
+              <i class="fa-solid fa-receipt text-emerald-400"></i>
+              <span>Bet Slip</span>
+            </h2>
+            <div class="flex items-center space-x-4">
+              <button onclick="clearBetSlip()" class="text-xs text-slate-400 hover:text-red-400 transition-colors flex items-center gap-1">
+                <i class="fa-solid fa-trash-can"></i>
+                <span>Clear Slip</span>
+              </button>
+              <button onclick="toggleBetSlip(false)" class="text-slate-400 hover:text-white p-1">
+                <i class="fa-solid fa-xmark text-xl"></i>
+              </button>
+            </div>
+          </div>
+
+          <div id="betSlipListMobile" class="py-4 space-y-3 max-h-[50vh] overflow-y-auto custom-scrollbar"></div>
+        </div>
+
+        <div id="betSlipSummaryMobile" class="border-t border-slate-800 pt-4 space-y-3 mt-auto">
+          <div class="flex justify-between items-center text-sm">
+            <span class="text-slate-400">Bet Type</span>
+            <span id="betTypeLabelMobile" class="font-bold text-slate-200">Single</span>
+          </div>
+          <div class="flex justify-between items-center text-sm">
+            <span class="text-slate-400">Total Odds</span>
+            <span id="totalOddsMobile" class="font-bold text-emerald-400">+0</span>
+          </div>
+          
+          <div class="space-y-1">
+            <label class="text-xs text-slate-400 font-semibold uppercase">Wager Amount ($)</label>
+            <div class="relative">
+              <span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-bold">$</span>
+              <input type="number" id="wagerInputMobile" value="5" min="1" oninput="onWagerChange('mobile')" class="w-full bg-slate-950 border border-slate-700 rounded-lg py-2.5 pl-8 pr-3 text-white font-bold focus:outline-none focus:border-blue-500">
+            </div>
+          </div>
+
+          <div class="bg-slate-950 p-3.5 rounded-xl border border-slate-800 flex justify-between items-center">
+            <div>
+              <p class="text-xs text-slate-400">Potential Payout</p>
+              <p id="potentialPayoutMobile" class="text-xl font-black text-emerald-400">$0.00</p>
+            </div>
+            <div class="text-right">
+              <p class="text-xs text-slate-400">Est. Profit</p>
+              <p id="potentialProfitMobile" class="text-sm font-bold text-slate-200">$0.00</p>
+            </div>
+          </div>
+
+          <button onclick="placeBet()" class="w-full bg-emerald-600 hover:bg-emerald-500 active:scale-[0.99] text-white font-extrabold py-3.5 rounded-xl transition-all shadow-lg shadow-emerald-900/40 uppercase tracking-wider text-sm flex items-center justify-center space-x-2">
+            <i class="fa-solid fa-paper-plane"></i>
+            <span>Place Bet</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Notification Toast -->
+  <div id="toast" class="fixed bottom-5 right-5 z-50 transform translate-y-20 opacity-0 transition-all duration-300 pointer-events-none">
+    <div class="bg-emerald-600 text-white px-5 py-3.5 rounded-xl shadow-2xl flex items-center space-x-3 font-semibold text-sm border border-emerald-400">
+      <i class="fa-solid fa-circle-check text-lg"></i>
+      <span id="toastMessage">Bet Placed Successfully!</span>
+    </div>
+  </div>
+
+  <script>
+    const matchupsData = [
+      {
+        id: "m1",
+        dateTime: "Thu 9/17 · 8:20 PM",
+        team1: { code: "HC", name: "I Respect Women", record: "1-0", overall: "1st Overall", spreadLine: "-13.5", spreadOdds: "-105", totalType: "O", totalLine: "235.5", totalOdds: "-115", moneyline: "-250" },
+        team2: { code: "AD", name: "I Chase Kids", record: "0-1", overall: "9th Overall", spreadLine: "+13.5", spreadOdds: "-115", totalType: "U", totalLine: "235.5", totalOdds: "-105", moneyline: "+205" }
+      },
+      {
+        id: "m2",
+        dateTime: "Sun 9/20 · 1:00 PM",
+        team1: { code: "NC", name: "I Bark at Women", record: "0-1", overall: "8th Overall", spreadLine: "-10.5", spreadOdds: "-105", totalType: "O", totalLine: "244.5", totalOdds: "-105", moneyline: "-205" },
+        team2: { code: "IB", name: "Drake \"Drake Maye\" Maye", record: "0-1", overall: "12th Overall", spreadLine: "+10.5", spreadOdds: "-115", totalType: "U", totalLine: "244.5", totalOdds: "-115", moneyline: "+175" }
+      },
+      {
+        id: "m3",
+        dateTime: "Sun 9/20 · 1:00 PM",
+        team1: { code: "MB", name: "I Miss Nabers", record: "0-1", overall: "10th Overall", spreadLine: "+4.5", spreadOdds: "-115", totalType: "O", totalLine: "234.5", totalOdds: "-105", moneyline: "+115" },
+        team2: { code: "ND", name: "I Bite Women", record: "1-0", overall: "3rd Overall", spreadLine: "-4.5", spreadOdds: "-105", totalType: "U", totalLine: "234.5", totalOdds: "-115", moneyline: "-140" }
+      },
+      {
+        id: "m4",
+        dateTime: "Sun 9/20 · 4:25 PM",
+        team1: { code: "ML", name: "Chase Brown", record: "0-1", overall: "7th Overall", spreadLine: "+8.5", spreadOdds: "-115", totalType: "O", totalLine: "237.5", totalOdds: "-105", moneyline: "+150" },
+        team2: { code: "919", name: "Beer Hugs and Big Jugs", record: "1-0", overall: "5th Overall", spreadLine: "-8.5", spreadOdds: "-105", totalType: "U", totalLine: "237.5", totalOdds: "-115", moneyline: "-185" }
+      },
+      {
+        id: "m5",
+        dateTime: "Sun 9/20 · 8:20 PM",
+        team1: { code: "AR", name: "Pack To The Future", record: "1-0", overall: "2nd Overall", spreadLine: "-5.5", spreadOdds: "-105", totalType: "O", totalLine: "236.5", totalOdds: "-105", moneyline: "-155" },
+        team2: { code: "PS", name: "Brock Bowers Glazer", record: "1-0", overall: "6th Overall", spreadLine: "+5.5", spreadOdds: "-115", totalType: "U", totalLine: "236.5", totalOdds: "-115", moneyline: "+120" }
+      },
+      {
+        id: "m6",
+        dateTime: "Mon 9/21 · 8:20 PM",
+        team1: { code: "JP", name: "GOD DID", record: "1-0", overall: "4th Overall", spreadLine: "-3.5", spreadOdds: "-105", totalType: "O", totalLine: "244.5", totalOdds: "-105", moneyline: "-125" },
+        team2: { code: "CL", name: "Hayden Doesn't Respect Women", record: "0-1", overall: "11th Overall", spreadLine: "+3.5", spreadOdds: "-115", totalType: "U", totalLine: "244.5", totalOdds: "-115", moneyline: "+105" }
+      }
+    ];
+
+    let selectedBets = [];
+    let placedBets = [];
+    let wagerAmount = 5;
+    let bankroll = 20.00;
+
+    window.onload = function() {
+      loadSavedState();
+      renderMatchups();
+      updateBetSlipUI();
+      renderPlacedBets();
+      updateBankrollDisplay();
+    };
+
+    function loadSavedState() {
+      try {
+        const savedBets = localStorage.getItem('ff_sportsbook_bets');
+        if (savedBets) selectedBets = JSON.parse(savedBets);
+
+        const savedPlaced = localStorage.getItem('ff_sportsbook_placed_bets');
+        if (savedPlaced) placedBets = JSON.parse(savedPlaced);
+
+        const savedWager = localStorage.getItem('ff_sportsbook_wager');
+        if (savedWager) wagerAmount = parseFloat(savedWager) || 5;
+
+        const savedBankroll = localStorage.getItem('ff_sportsbook_bankroll');
+        if (savedBankroll !== null) {
+          bankroll = parseFloat(savedBankroll);
+        } else {
+          bankroll = 20.00;
+        }
+      } catch (e) {
+        console.error("Error loading saved state:", e);
+      }
+
+      document.getElementById('wagerInputDesktop').value = wagerAmount;
+      document.getElementById('wagerInputMobile').value = wagerAmount;
+    }
+
+    function saveState() {
+      try {
+        localStorage.setItem('ff_sportsbook_bets', JSON.stringify(selectedBets));
+        localStorage.setItem('ff_sportsbook_placed_bets', JSON.stringify(placedBets));
+        localStorage.setItem('ff_sportsbook_wager', wagerAmount.toString());
+        localStorage.setItem('ff_sportsbook_bankroll', bankroll.toString());
+      } catch (e) {
+        console.error("Error saving state:", e);
+      }
+    }
+
+    function updateBankrollDisplay() {
+      document.getElementById('userBankrollDisplay').innerText = `$${bankroll.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    }
+
+    function switchMainView(view) {
+      const sbView = document.getElementById('sportsbookView');
+      const mbView = document.getElementById('myBetsView');
+      const sbBtn = document.getElementById('navSportsbookBtn');
+      const mbBtn = document.getElementById('navMyBetsBtn');
+
+      if (view === 'sportsbook') {
+        sbView.classList.remove('hidden');
+        mbView.classList.add('hidden');
+        sbBtn.className = "px-3 py-1.5 rounded-lg text-xs font-bold transition-all bg-blue-600 text-white flex items-center gap-1.5 shadow";
+        mbBtn.className = "px-3 py-1.5 rounded-lg text-xs font-bold transition-all text-slate-400 hover:text-white flex items-center gap-1.5";
+      } else {
+        sbView.classList.add('hidden');
+        mbView.classList.remove('hidden');
+        mbBtn.className = "px-3 py-1.5 rounded-lg text-xs font-bold transition-all bg-blue-600 text-white flex items-center gap-1.5 shadow";
+        sbBtn.className = "px-3 py-1.5 rounded-lg text-xs font-bold transition-all text-slate-400 hover:text-white flex items-center gap-1.5";
+        renderPlacedBets();
+      }
+    }
+
+    function renderMatchups() {
+      const container = document.getElementById('matchupsContainer');
+      container.innerHTML = '';
+
+      matchupsData.forEach(m => {
+        const card = document.createElement('div');
+        card.className = "bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-lg transition-all hover:border-slate-700";
+        
+        card.innerHTML = `
+          <div class="bg-slate-950/60 px-5 py-2.5 border-b border-slate-800/80 flex justify-between items-center text-xs">
+            <div class="flex items-center space-x-2 text-slate-400 font-semibold">
+              <i class="fa-regular fa-clock text-blue-400"></i>
+              <span>${m.dateTime}</span>
+            </div>
+            <span class="text-slate-600 text-xs font-mono uppercase">Fantasy Football</span>
+          </div>
+
+          <div class="grid grid-cols-12 gap-2 px-4 pt-3 pb-1 text-[11px] font-bold text-slate-400 uppercase tracking-wider text-center">
+            <div class="col-span-6 md:col-span-5 text-left pl-1">Team</div>
+            <div class="col-span-2 md:col-span-2">Spread</div>
+            <div class="col-span-2 md:col-span-2">Total</div>
+            <div class="col-span-2 md:col-span-3">Money</div>
+          </div>
+
+          ${renderTeamRow(m, m.team1, 'team1')}
+          <div class="border-t border-slate-800/40"></div>
+          ${renderTeamRow(m, m.team2, 'team2')}
+        `;
+
+        container.appendChild(card);
+      });
+    }
+
+    function renderTeamRow(matchup, team, teamKey) {
+      const spreadId = `${matchup.id}_${teamKey}_spread`;
+      const totalId = `${matchup.id}_${teamKey}_total`;
+      const moneyId = `${matchup.id}_${teamKey}_money`;
+
+      const isSpreadSelected = selectedBets.some(b => b.id === spreadId);
+      const isTotalSelected = selectedBets.some(b => b.id === totalId);
+      const isMoneySelected = selectedBets.some(b => b.id === moneyId);
+
+      return `
+        <div class="grid grid-cols-12 gap-2 px-4 py-3 items-center">
+          <div class="col-span-6 md:col-span-5 flex items-center space-x-3">
+            <div class="w-9 h-9 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center font-bold text-slate-300 text-xs shrink-0 shadow-sm">
+              ${team.code}
+            </div>
+            <div class="min-w-0 pr-1">
+              <h3 class="font-bold text-white text-sm sm:text-base leading-tight truncate">${team.name}</h3>
+              <p class="text-xs text-slate-400 font-medium">${team.record}, <span class="text-slate-500">${team.overall}</span></p>
+            </div>
+          </div>
+
+          <div class="col-span-2 md:col-span-2">
+            <button id="btn_${spreadId}" 
+              onclick="toggleBet('${spreadId}', '${matchup.id}', '${team.name}', 'Spread', '${team.spreadLine}', '${team.spreadOdds}')"
+              class="odds-btn ${isSpreadSelected ? 'active' : ''} w-full bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700/60 rounded-xl py-2 px-1 text-center transition-all flex flex-col items-center justify-center">
+              <span class="odds-line font-bold text-slate-100 text-xs sm:text-sm">${team.spreadLine}</span>
+              <span class="odds-val text-[11px] font-medium text-slate-400">${team.spreadOdds}</span>
+            </button>
+          </div>
+
+          <div class="col-span-2 md:col-span-2">
+            <button id="btn_${totalId}" 
+              onclick="toggleBet('${totalId}', '${matchup.id}', '${team.name}', 'Total', '${team.totalType} ${team.totalLine}', '${team.totalOdds}')"
+              class="odds-btn ${isTotalSelected ? 'active' : ''} w-full bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700/60 rounded-xl py-2 px-1 text-center transition-all flex flex-col items-center justify-center">
+              <span class="odds-line font-bold text-slate-100 text-xs sm:text-sm">${team.totalType} ${team.totalLine}</span>
+              <span class="odds-val text-[11px] font-medium text-slate-400">${team.totalOdds}</span>
+            </button>
+          </div>
+
+          <div class="col-span-2 md:col-span-3">
+            <button id="btn_${moneyId}" 
+              onclick="toggleBet('${moneyId}', '${matchup.id}', '${team.name}', 'Moneyline', 'ML', '${team.moneyline}')"
+              class="odds-btn ${isMoneySelected ? 'active' : ''} w-full bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700/60 rounded-xl py-2 px-1 text-center transition-all flex flex-col items-center justify-center">
+              <span class="odds-line font-bold text-blue-400 text-xs sm:text-sm">${team.moneyline}</span>
+            </button>
+          </div>
+        </div>
+      `;
+    }
+
+    function toggleBet(id, matchupId, teamName, type, detail, odds) {
+      const existingIndex = selectedBets.findIndex(b => b.id === id);
+
+      if (existingIndex > -1) {
+        selectedBets.splice(existingIndex, 1);
+      } else {
+        selectedBets = selectedBets.filter(b => !(b.matchupId === matchupId && b.type === type));
+        selectedBets.push({ id, matchupId, teamName, type, detail, odds });
+      }
+
+      saveState();
+      renderMatchups();
+      updateBetSlipUI();
+    }
+
+    function removeBet(id) {
+      selectedBets = selectedBets.filter(b => b.id !== id);
+      saveState();
+      renderMatchups();
+      updateBetSlipUI();
+    }
+
+    function clearBetSlip() {
+      selectedBets = [];
+      saveState();
+      renderMatchups();
+      updateBetSlipUI();
+      showToast('Bet slip cleared', 'info');
+    }
+
+    function onWagerChange(source = 'desktop') {
+      if (source === 'desktop') {
+        wagerAmount = parseFloat(document.getElementById('wagerInputDesktop').value) || 0;
+        document.getElementById('wagerInputMobile').value = wagerAmount;
+      } else {
+        wagerAmount = parseFloat(document.getElementById('wagerInputMobile').value) || 0;
+        document.getElementById('wagerInputDesktop').value = wagerAmount;
+      }
+      saveState();
+      updatePayouts();
+    }
+
+    function convertAmericanToDecimal(americanOdds) {
+      const num = parseInt(americanOdds, 10);
+      return num > 0 ? (num / 100) + 1 : (100 / Math.abs(num)) + 1;
+    }
+
+    function calculateCombinedOdds(bets) {
+      if (bets.length === 0) return "+0";
+      let totalDecimal = 1;
+      bets.forEach(b => {
+        totalDecimal *= convertAmericanToDecimal(b.odds);
+      });
+      
+      if (totalDecimal >= 2.0) {
+        const american = Math.round((totalDecimal - 1) * 100);
+        return `+${american}`;
+      } else {
+        const american = Math.round(-100 / (totalDecimal - 1));
+        return `${american}`;
+      }
+    }
+
+    function calculateTotalPayout(bets, wager) {
+      if (bets.length === 0 || wager <= 0) return 0;
+      let totalDecimal = 1;
+      bets.forEach(b => {
+        totalDecimal *= convertAmericanToDecimal(b.odds);
+      });
+      return wager * totalDecimal;
+    }
+
+    function updateBetSlipUI() {
+      const count = selectedBets.length;
+      
+      const badge = document.getElementById('betCountBadge');
+      if (count > 0) {
+        badge.innerText = count;
+        badge.classList.remove('hidden');
+      } else {
+        badge.classList.add('hidden');
+      }
+
+      const listDesktop = document.getElementById('betSlipListDesktop');
+      const listMobile = document.getElementById('betSlipListMobile');
+
+      if (count === 0) {
+        const emptyState = `
+          <div class="text-center py-8 px-4 border border-dashed border-slate-800 rounded-xl">
+            <i class="fa-solid fa-ticket text-3xl text-slate-600 mb-2"></i>
+            <p class="text-slate-400 font-semibold text-sm">Your Bet Slip is empty</p>
+            <p class="text-xs text-slate-500 mt-1">Select odds to start building your wager.</p>
+          </div>
+        `;
+        listDesktop.innerHTML = emptyState;
+        listMobile.innerHTML = emptyState;
+      } else {
+        const itemsHtml = selectedBets.map(bet => `
+          <div class="bg-slate-950 p-3 rounded-xl border border-slate-800 flex items-start justify-between relative group">
+            <div class="space-y-1 pr-6">
+              <div class="flex items-center space-x-2">
+                <span class="text-xs font-bold text-blue-400 bg-blue-950 px-2 py-0.5 rounded border border-blue-800/50">${bet.type}</span>
+                <span class="text-xs font-bold text-emerald-400">${bet.odds}</span>
+              </div>
+              <h4 class="font-bold text-white text-sm">${bet.teamName}</h4>
+              <p class="text-xs text-slate-400 font-medium">Pick: <span class="text-slate-200 font-semibold">${bet.detail}</span></p>
+            </div>
+            <button onclick="removeBet('${bet.id}')" class="text-slate-500 hover:text-red-400 p-1 transition-colors">
+              <i class="fa-solid fa-xmark text-sm"></i>
+            </button>
+          </div>
+        `).join('');
+
+        listDesktop.innerHTML = itemsHtml;
+        listMobile.innerHTML = itemsHtml;
+      }
+
+      const betTypeLabel = count > 1 ? `Parlay (${count} Legs)` : 'Single Bet';
+      document.getElementById('betTypeLabelDesktop').innerText = betTypeLabel;
+      document.getElementById('betTypeLabelMobile').innerText = betTypeLabel;
+
+      const totalOdds = count === 0 ? '+0' : (count === 1 ? selectedBets[0].odds : calculateCombinedOdds(selectedBets));
+      document.getElementById('totalOddsDesktop').innerText = totalOdds;
+      document.getElementById('totalOddsMobile').innerText = totalOdds;
+
+      updatePayouts();
+    }
+
+    function updatePayouts() {
+      const payout = calculateTotalPayout(selectedBets, wagerAmount);
+      const profit = Math.max(0, payout - wagerAmount);
+
+      document.getElementById('potentialPayoutDesktop').innerText = `$${payout.toFixed(2)}`;
+      document.getElementById('potentialProfitDesktop').innerText = `+$${profit.toFixed(2)}`;
+
+      document.getElementById('potentialPayoutMobile').innerText = `$${payout.toFixed(2)}`;
+      document.getElementById('potentialProfitMobile').innerText = `+$${profit.toFixed(2)}`;
+    }
+
+    function placeBet() {
+      if (selectedBets.length === 0) {
+        showToast('Please select at least one bet first!', 'error');
+        return;
+      }
+
+      if (wagerAmount <= 0) {
+        showToast('Please enter a valid wager amount!', 'error');
+        return;
+      }
+
+      if (wagerAmount > bankroll) {
+        showToast(`Insufficient funds! Your balance is $${bankroll.toFixed(2)}.`, 'error');
+        return;
+      }
+
+      const totalPayout = calculateTotalPayout(selectedBets, wagerAmount);
+      const combinedOdds = selectedBets.length === 1 ? selectedBets[0].odds : calculateCombinedOdds(selectedBets);
+      
+      const newPlacedTicket = {
+        ticketId: 'TKT-' + Math.floor(100000 + Math.random() * 900000),
+        placedAt: new Date().toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }),
+        bets: [...selectedBets],
+        wager: wagerAmount,
+        combinedOdds: combinedOdds,
+        potentialPayout: totalPayout
+      };
+
+      placedBets.unshift(newPlacedTicket);
+      bankroll -= wagerAmount;
+
+      selectedBets = [];
+      saveState();
+      renderMatchups();
+      updateBetSlipUI();
+      updateBankrollDisplay();
+      renderPlacedBets();
+      toggleBetSlip(false);
+
+      showToast(`Bet placed! Ticket ${newPlacedTicket.ticketId} saved to My Bets.`, 'success');
+    }
+
+    function renderPlacedBets() {
+      const container = document.getElementById('placedBetsContainer');
+      const activeBadge = document.getElementById('activeBetsBadge');
+      
+      if (placedBets.length > 0) {
+        activeBadge.innerText = placedBets.length;
+        activeBadge.classList.remove('hidden');
+      } else {
+        activeBadge.classList.add('hidden');
+      }
+
+      if (placedBets.length === 0) {
+        container.innerHTML = `
+          <div class="bg-slate-900 border border-slate-800 rounded-2xl p-12 text-center">
+            <i class="fa-solid fa-folder-open text-4xl text-slate-600 mb-3"></i>
+            <h3 class="text-white font-bold text-lg">No Bets Placed Yet</h3>
+            <p class="text-slate-400 text-sm mt-1">Place a wager from the sportsbook to track your bets here.</p>
+            <button onclick="switchMainView('sportsbook')" class="mt-4 bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-xl text-xs font-bold transition-all">
+              Go To Sportsbook
+            </button>
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = placedBets.map(ticket => {
+        const isParlay = ticket.bets.length > 1;
+
+        return `
+          <div class="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-lg transition-all">
+            <!-- Ticket Top Header -->
+            <div class="bg-slate-950/80 px-5 py-3 border-b border-slate-800/80 flex items-center justify-between gap-2 text-xs">
+              <div class="flex items-center space-x-3">
+                <span class="font-mono font-bold text-blue-400">${ticket.ticketId}</span>
+                <span class="text-slate-500">•</span>
+                <span class="text-slate-400"><i class="fa-regular fa-clock mr-1"></i>${ticket.placedAt}</span>
+              </div>
+              <span class="bg-slate-800 text-slate-300 font-bold px-2.5 py-1 rounded-md border border-slate-700">
+                ${isParlay ? `Parlay (${ticket.bets.length} Legs)` : 'Single'}
+              </span>
+            </div>
+
+            <!-- Ticket Legs -->
+            <div class="p-5 space-y-3">
+              ${ticket.bets.map(b => `
+                <div class="bg-slate-950/50 p-3 rounded-xl border border-slate-800/80 flex justify-between items-center text-sm">
+                  <div>
+                    <div class="flex items-center space-x-2">
+                      <span class="text-xs font-extrabold text-blue-400 bg-blue-950/80 px-2 py-0.5 rounded border border-blue-800/40">${b.type}</span>
+                      <span class="font-bold text-white">${b.teamName}</span>
+                    </div>
+                    <p class="text-xs text-slate-400 mt-1">Pick: <span class="text-slate-200 font-semibold">${b.detail}</span></p>
+                  </div>
+                  <div class="font-extrabold text-emerald-400 text-sm">
+                    ${b.odds}
+                  </div>
+                </div>
+              `).join('')}
+            </div>
+
+            <!-- Ticket Footer -->
+            <div class="bg-slate-950 px-5 py-3 border-t border-slate-800 flex items-center justify-between text-xs">
+              <div>
+                <p class="text-slate-400">Wager</p>
+                <p class="text-base font-bold text-white">$${ticket.wager.toFixed(2)}</p>
+              </div>
+              <div>
+                <p class="text-slate-400">Total Odds</p>
+                <p class="text-base font-bold text-blue-400">${ticket.combinedOdds}</p>
+              </div>
+              <div class="text-right">
+                <p class="text-slate-400">Potential Payout</p>
+                <p class="text-base font-black text-emerald-400">$${ticket.potentialPayout.toFixed(2)}</p>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function toggleBetSlip(open) {
+      const drawer = document.getElementById('mobileBetSlipDrawer');
+      if (open) {
+        drawer.classList.remove('opacity-0', 'pointer-events-none');
+        drawer.classList.add('opacity-100');
+      } else {
+        drawer.classList.add('opacity-0', 'pointer-events-none');
+        drawer.classList.remove('opacity-100');
+      }
+    }
+
+    function showToast(msg, type = 'success') {
+      const toast = document.getElementById('toast');
+      const toastMsg = document.getElementById('toastMessage');
+      toastMsg.innerText = msg;
+
+      if (type === 'error') {
+        toast.firstElementChild.className = "bg-red-600 text-white px-5 py-3.5 rounded-xl shadow-2xl flex items-center space-x-3 font-semibold text-sm border border-red-400";
+      } else if (type === 'info') {
+        toast.firstElementChild.className = "bg-blue-600 text-white px-5 py-3.5 rounded-xl shadow-2xl flex items-center space-x-3 font-semibold text-sm border border-blue-400";
+      } else {
+        toast.firstElementChild.className = "bg-emerald-600 text-white px-5 py-3.5 rounded-xl shadow-2xl flex items-center space-x-3 font-semibold text-sm border border-emerald-400";
+      }
+
+      toast.classList.remove('translate-y-20', 'opacity-0');
+      toast.classList.add('translate-y-0', 'opacity-100');
+
+      setTimeout(() => {
+        toast.classList.remove('translate-y-0', 'opacity-100');
+        toast.classList.add('translate-y-20', 'opacity-0');
+      }, 3500);
+    }
+  </script>
+</body>
+</html>
